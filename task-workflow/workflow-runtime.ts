@@ -63,7 +63,12 @@ interface KnowledgeGraph {
 
 // ── Paths ────────────────────────────────────────────────────
 
-const PROJECT_ROOT = process.cwd();
+function getProjectRoot(): string {
+  const arg = process.argv.find((a) => a.startsWith("--project-root="));
+  return arg ? arg.slice(15) : process.cwd();
+}
+
+const PROJECT_ROOT = getProjectRoot();
 const TASKS_DIR = join(PROJECT_ROOT, "task-workflow", "tasks");
 const KG_PATH = join(PROJECT_ROOT, "runtime", "knowledge-graph.json");
 
