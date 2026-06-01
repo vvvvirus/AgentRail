@@ -1,8 +1,15 @@
+[English](README.md) | [中文](README.zh-CN.md)
+
 # Claude Task Workflow
 
 Plan → review → execute → archive any multi-step task inside Claude Code. File processing, data migration, research, content creation — anything that takes more than one step and is worth remembering later.
 
-Not a code framework. No dependencies, no config, no CLI. Six slash commands, five skills, and a directory of markdown files. Driven by a TypeScript runtime for deterministic DAG ordering, checkpointing, and verification.
+Not a code framework. No dependencies, no config, no CLI. Six slash commands, one skill, and a directory of markdown files. Driven by a TypeScript runtime for deterministic DAG ordering, checkpointing, and verification.
+
+## What's new in v2.3.0
+
+- **Skills merged into commands**: task-plan, task-done, task-log, task-list are now standalone commands — no more Skill tool indirection. Only task-do remains as a skill (needed for long-running task loop persistence). Each command is a single file that loads immediately with no forwarding overhead.
+- **Bilingual README**: English + Chinese (中文) with language switcher links at the top of each.
 
 ## What's new in v2.2.0
 
@@ -97,19 +104,15 @@ claude-task-workflow/
 ├── install.sh / install.ps1            # Installers
 ├── README.md
 ├── LICENSE
-├── commands/task/                      # 6 slash commands (thin wrappers)
+├── commands/task/                      # 6 slash commands (standalone)
 │   ├── plan.md
 │   ├── do.md
 │   ├── done.md
 │   ├── list.md
 │   ├── log.md
 │   └── verify.md
-├── skills/                             # 5 skills
-│   ├── task-plan/SKILL.md              # Create + update + review
-│   ├── task-do/SKILL.md                # Execute + native UI + recovery
-│   ├── task-done/SKILL.md
-│   ├── task-list/SKILL.md
-│   └── task-log/SKILL.md
+├── skills/                             # 1 skill
+│   └── task-do/SKILL.md                # Execute + native UI + recovery
 └── task-workflow/                      # Runtime + tasks (installed to ~/.claude/)
     ├── tasks/                          # Active + archived task plans
     │   ├── <active-task>/
@@ -132,7 +135,7 @@ cd claude-task-workflow
 .\install.ps1
 ```
 
-Copies skills to `~/.claude/skills/`, commands to `~/.claude/commands/task/`, and runtime to `~/.claude/task-workflow/`. Runs `npm install` in `~/.claude/task-workflow/` to cache the `tsx` dependency. Restart Claude Code. No other setup.
+Copies the task-do skill to `~/.claude/skills/`, all 6 commands to `~/.claude/commands/task/`, and runtime to `~/.claude/task-workflow/`. Runs `npm install` in `~/.claude/task-workflow/` to cache the `tsx` dependency. Restart Claude Code. No other setup.
 
 ## Requirements
 
@@ -143,7 +146,7 @@ Copies skills to `~/.claude/skills/`, commands to `~/.claude/commands/task/`, an
 
 ```
 ~/.claude/
-├── skills/task-*/    ← Skills (Claude Code auto-discovers)
+├── skills/task-do/   ← Skill (Claude Code auto-discovers)
 ├── commands/task/    ← Commands (Claude Code auto-discovers)
 └── task-workflow/    ← Runtime (one clean subdirectory)
     ├── workflow-runtime.ts
