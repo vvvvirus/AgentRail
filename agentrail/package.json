@@ -1,0 +1,20 @@
+{
+  "name": "agent-rail",
+  "version": "3.0.0",
+  "description": "Agent-agnostic task workflow with runtime-driven orchestration",
+  "type": "module",
+  "bin": {
+    "agent-rail": "./cli.ts"
+  },
+  "scripts": {
+    "test": "npx tsx --test tests/task-graph.test.ts tests/validate.test.ts",
+    "runtime": "npx tsx cli.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}
