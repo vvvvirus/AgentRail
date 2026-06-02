@@ -10,6 +10,7 @@ interface SubTask {
   status: "pending" | "in_progress" | "done" | "skipped";
   deps?: string[];
   blockedBy?: string[];
+  artifacts?: string[];
 }
 
 interface CheckState {
@@ -47,6 +48,7 @@ interface Checkpoint {
   tasks_completed: number;
   total_tasks: number;
   checks: CheckState;
+  artifacts?: string[];
 }
 
 interface ServiceNode {
@@ -347,12 +349,15 @@ function cmdNext(name: string): void {
   }
 }
 
-function cmdStepDone(name: string, stepIndex: number): void {
+function cmdStepDone(name: string, stepIndex: number, artifacts?: string): void {
   const state = loadState(name);
   if (stepIndex < 0 || stepIndex >= state.tasks.length) {
     die(`Step index ${stepIndex} out of range (0-${state.tasks.length - 1}).`);
   }
   state.tasks[stepIndex].status = "done";
+  if (artifacts) {
+    state.tasks[stepIndex].artifacts = parseList(artifacts);
+  }
   saveState(name, state);
   ok({ step: state.tasks[stepIndex].id, index: stepIndex, status: "done" });
 }
@@ -420,6 +425,7 @@ function cmdCheckpoint(
   name: string,
   step: string,
   files?: string,
+  artifacts?: string,
 ): void {
   const state = loadState(name);
   const index = state.lastCheckpoint + 1;
@@ -440,6 +446,7 @@ function cmdCheckpoint(
     tasks_completed: completed,
     total_tasks: state.tasks.length,
     checks: state.checks || {},
+    artifacts: artifacts ? parseList(artifacts) : undefined,
   };
 
   writeFileSync(checkpointPath(name, index), JSON.stringify(checkpoint, null, 2) + "\n");
@@ -507,6 +514,99 @@ function cmdKgQuery(service?: string): void {
   }
 }
 
+interface ValidationResult {
+  overall: "PASS" | "WARN" | "BLOCK";
+  checks: {
+    task_count: { pass: boolean; message: string };
+    deps_valid: { pass: boolean; message: string };
+    verify_coverage: { pass: boolean; message: string };
+    granularity: { pass: boolean; message: string };
+  };
+}
+
+function cmdValidate(name: string): void {
+  const state = loadState(name);
+  const result: ValidationResult = {
+    overall: "PASS",
+    checks: {
+      task_count: { pass: true, message: "" },
+      deps_valid: { pass: true, message: "" },
+      verify_coverage: { pass: true, message: "" },
+      granularity: { pass: true, message: "" },
+    },
+  };
+
+  const n = state.tasks.length;
+
+  // 1. task_count
+  if (n < 3) {
+    result.checks.task_count = { pass: false, message: `Only ${n} tasks (minimum 3). May be under-planned.` };
+  } else if (n > 15) {
+    result.checks.task_count = { pass: false, message: `${n} tasks (maximum 15). Consider grouping.` };
+  } else {
+    result.checks.task_count = { pass: true, message: `${n} tasks in range [3-15].` };
+  }
+
+  // 2. deps_valid
+  const validIds = new Set(state.tasks.map((t) => t.id));
+  const brokenDeps: string[] = [];
+  for (const t of state.tasks) {
+    for (const d of t.deps || []) {
+      if (!validIds.has(d)) {
+        brokenDeps.push(`${t.id} → ${d}`);
+      }
+    }
+    for (const b of t.blockedBy || []) {
+      if (!validIds.has(b)) {
+        brokenDeps.push(`${t.id} blockedBy ${b}`);
+      }
+    }
+  }
+  if (brokenDeps.length > 0) {
+    result.checks.deps_valid = { pass: false, message: `Broken references: ${brokenDeps.join(", ")}` };
+  } else {
+    result.checks.deps_valid = { pass: true, message: "All dependency references valid." };
+  }
+
+  // 3. verify_coverage
+  const hasVerify = (state.verifyCommands || []).length > 0;
+  if (!hasVerify) {
+    result.checks.verify_coverage = {
+      pass: false,
+      message: "No verify commands configured. Add tests, lint, or typecheck.",
+    };
+  } else {
+    const names = (state.verifyCommands || []).map((c) => c.name).join(", ");
+    result.checks.verify_coverage = { pass: true, message: `Verify commands: ${names}` };
+  }
+
+  // 4. granularity — flag descriptions > 50 chars without an action verb
+  const vagueDescriptions: string[] = [];
+  const verbs = /\b(add|create|remove|delete|update|modify|fix|implement|install|configure|set|run|build|test|deploy|refactor|extract|rename|move|copy|sync|merge|split|check|verify|validate|write|read|generate|convert|optimize|clean|replace|upgrade|downgrade|migrate|init|setup|teardown|audit|review|document|archive|restore|bump|release|lint|format|compress|encrypt|decrypt|hash|sign|parse|serialize|normalize|patch)\b/i;
+  for (const t of state.tasks) {
+    if (t.description.length > 50 && !verbs.test(t.description)) {
+      vagueDescriptions.push(t.id);
+    }
+  }
+  if (vagueDescriptions.length > 0) {
+    result.checks.granularity = {
+      pass: false,
+      message: `Vague descriptions (no action verb): ${vagueDescriptions.join(", ")}`,
+    };
+  } else {
+    result.checks.granularity = { pass: true, message: "All task descriptions clear and actionable." };
+  }
+
+  // Determine overall verdict
+  const hasBlock = !result.checks.deps_valid.pass;
+  const hasWarn = !result.checks.task_count.pass || !result.checks.verify_coverage.pass || !result.checks.granularity.pass;
+  if (hasBlock) result.overall = "BLOCK";
+  else if (hasWarn) result.overall = "WARN";
+
+  console.log(JSON.stringify(result, null, 2));
+  process.exit(result.overall === "PASS" ? 0 : result.overall === "WARN" ? 1 : 2);
+}
+
 function cmdNextCheckpoint(name: string): void {
   const files = listCheckpoints(name);
 
@@ -526,7 +626,7 @@ function main(): void {
   const cmd = args[0];
 
   if (!cmd) {
-    die("Usage: workflow-runtime.ts <command> [args...]\nCommands: init, next, step-done, verify, checkpoint, complete, status, checkpoints, checkpoint-read, next-checkpoint, kg-add, kg-query");
+    die("Usage: workflow-runtime.ts <command> [args...]\nCommands: init, next, step-done, verify, validate, checkpoint, complete, status, checkpoints, checkpoint-read, next-checkpoint, kg-add, kg-query");
   }
 
   try {
@@ -549,7 +649,8 @@ function main(): void {
         const name = requireArg(args, 1, "task-name");
         const step = requireArg(args, 2, "step-name");
         const files = args.find((a) => a.startsWith("--files="))?.slice(8);
-        cmdCheckpoint(name, step, files);
+        const artifacts = args.find((a) => a.startsWith("--artifacts="))?.slice(12);
+        cmdCheckpoint(name, step, files, artifacts);
         break;
       }
       case "checkpoints":
@@ -561,8 +662,11 @@ function main(): void {
       case "next-checkpoint":
         cmdNextCheckpoint(requireArg(args, 1, "task-name"));
         break;
+      case "validate":
+        cmdValidate(requireArg(args, 1, "task-name"));
+        break;
       case "step-done":
-        cmdStepDone(requireArg(args, 1, "task-name"), parseInt(requireArg(args, 2, "step-index")));
+        cmdStepDone(requireArg(args, 1, "task-name"), parseInt(requireArg(args, 2, "step-index")), args.find((a) => a.startsWith("--artifacts="))?.slice(12));
         break;
       case "complete":
         cmdComplete(requireArg(args, 1, "task-name"));
@@ -581,7 +685,7 @@ function main(): void {
         cmdKgQuery(args[1]);
         break;
       default:
-        die(`Unknown command: ${cmd}\nCommands: init, next, step-done, verify, checkpoint, complete, status, checkpoints, checkpoint-read, next-checkpoint, kg-add, kg-query`);
+        die(`Unknown command: ${cmd}\nCommands: init, next, step-done, verify, validate, checkpoint, complete, status, checkpoints, checkpoint-read, next-checkpoint, kg-add, kg-query`);
     }
   } catch (e: unknown) {
     if (e instanceof SyntaxError) {

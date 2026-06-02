@@ -53,12 +53,12 @@ Execute tasks from a planned task. Uses the task-workflow runtime for DAG-based 
 
    d. **Write pre-task checkpoint:**
       ```bash
-      npx tsx ~/.claude/task-workflow/workflow-runtime.ts checkpoint <name> "starting-task-<N>" --files="<known-files>"
+      npx tsx ~/.claude/task-workflow/workflow-runtime.ts checkpoint <name> "starting-task-<N>" --files="<known-files>" --artifacts="<produced-files>" --project-root=<PROJECT_ROOT>
       ```
       If checkpoint fails (non-zero exit), log warning but **do not block** — continue to step 7e. Checkpoint failure must never stop task execution. If runtime is completely unavailable, skip silently and fall back to markdown-only mode.
 
    e. Execute the task. After success:
-      - Mark runtime done: `npx tsx ~/.claude/task-workflow/workflow-runtime.ts step-done <name> <index>`
+      - Mark runtime done: `npx tsx ~/.claude/task-workflow/workflow-runtime.ts step-done <name> <index> --artifacts="<produced-files>" --project-root=<PROJECT_ROOT>`
       - **Mark complete in native UI**: Use **TaskUpdate** on the matching task: `status: "completed"`. This shows ✔ in the native progress bar.
       - Update `- [ ]` → `- [x]` in tasks.md
 

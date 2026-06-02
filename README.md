@@ -6,19 +6,15 @@ Plan → review → execute → archive any multi-step task inside Claude Code. 
 
 Not a code framework. No dependencies, no config, no CLI. Six slash commands, one skill, and a directory of markdown files. Driven by a TypeScript runtime for deterministic DAG ordering, checkpointing, and verification.
 
-## What's new in v2.3.0
+## What's new in v2.4.0
 
-- **Skills merged into commands**: task-plan, task-done, task-log, task-list are now standalone commands — no more Skill tool indirection. Only task-do remains as a skill (needed for long-running task loop persistence). Each command is a single file that loads immediately with no forwarding overhead.
-- **Bilingual README**: English + Chinese (中文) with language switcher links at the top of each.
-
-## What's new in v2.2.0
-
-- **Skill slimming**: Skills reduced from 943 to 456 lines (-52%). Same features, much less context footprint.
-- **Plan review agent**: Every `/task:plan` auto-reviews the task graph before showing results. Two layers — deterministic checks (task count, dep validity, verify coverage, granularity) + LLM subagent (completeness, ordering, risks). Outputs PASS / WARN / BLOCK. WARN doesn't block execution; BLOCK does.
-- **Native progress UI**: `/task:do` drives Claude Code's built-in progress bar via TaskCreate/TaskUpdate. Pending tasks show ◻, current task ◼, completed ✔ — all in the bottom status bar.
-- **Pre-task checkpoint + compact recovery**: Checkpoints are written BEFORE each task executes (not after). If the context compacts mid-task, the next session auto-recovers from the interrupted task.
-- **Install includes runtime**: `workflow-runtime.ts`, `package.json`, `tsconfig.json` now installed to `~/.claude/task-workflow/`. The workflow works from any directory, not just the repo.
-- **Language guardrails**: Each skill carries its own language rule. No dependency on a project-level CLAUDE.md that never gets installed.
+- **Artifact tracking**: SubTask and Checkpoint now carry an `artifacts` field — a list of files produced by each task. Reviewer and downstream tasks can locate outputs without re-reading entire execution logs. Pass `--artifacts=<f1>,<f2>` to `step-done` and `checkpoint`.
+- **Structured validation**: New `validate` command runs 4 deterministic checks (task_count, deps_valid, verify_coverage, granularity) with structured JSON output and standard exit codes (0=PASS / 1=WARN / 2=BLOCK). Callable from scripts, reusable by plan review.
+- **Skills merged into commands**: task-plan, task-done, task-log, task-list are standalone commands. Only task-do remains as a skill.
+- **Plan review agent**: Two-layer review — deterministic (now via `validate`) + LLM subagent. Returns PASS / WARN / BLOCK.
+- **Native progress UI**: `/task:do` drives Claude Code's built-in progress bar via TaskCreate/TaskUpdate.
+- **Pre-task checkpoint + compact recovery**: Checkpoints written BEFORE each task. Auto-recovery from context compaction.
+- **Bilingual README + runtime included in install**.
 
 ## How it works
 

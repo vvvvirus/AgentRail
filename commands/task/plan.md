@@ -100,11 +100,12 @@ When ready to execute, run /task:do
 
 10. **Run review (internal)** — Review the plan before showing it to the user. Two layers:
 
-    **Layer 1 — Deterministic checks** (execute directly, zero LLM cost):
-    - Task count: 3-15? If <3 → WARN "too few tasks, may be under-planned." If >15 → WARN "too many tasks, consider grouping."
-    - Dep validity: all `deps` IDs exist in the task list? If not → BLOCK "broken dependency reference."
-    - Verify coverage: at least one verify command or verification step? If not → WARN "no verification configured."
-    - Granularity: any task description >50 chars without a verb? If yes → WARN "task may be too vague."
+    **Layer 1 — Deterministic checks** (run via validate command, zero LLM cost):
+    ```bash
+    npx tsx ~/.claude/task-workflow/workflow-runtime.ts validate <name> --project-root=<PROJECT_ROOT>
+    ```
+    Runs 4 structured checks: task_count, deps_valid, verify_coverage, granularity.
+    Exit 0 = PASS, 1 = WARN, 2 = BLOCK. WARN continues; BLOCK stops here — fix the issues before Layer 2.
 
     **Layer 2 — LLM review** (spawn via Agent tool, only if Layer 1 passes):
     Use Agent with a strict review prompt. Input is `task-state.json` — not markdown text. Output format:
@@ -195,3 +196,4 @@ When ready to execute, run /task:do
 - Write log.md during planning. After every update, append to log.md immediately.
 - In update mode, only edit files that need changing. Preserve completed checkboxes.
 - **Project root**: Determine PROJECT_ROOT as the directory containing `task-workflow/`. Pass `--project-root=<PROJECT_ROOT>` to every `workflow-runtime.ts` call.
+- **Artifacts**: When calling `step-done`, append `--artifacts=<file1>,<file2>` to record outputs per task.

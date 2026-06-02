@@ -6,19 +6,15 @@
 
 不是代码框架。无依赖、无配置、无 CLI。六个斜杠命令、一个 skill、一组 markdown 文件。由 TypeScript 运行时驱动，提供确定性 DAG 排序、检查点和验证功能。
 
-## v2.3.0 更新
+## v2.4.0 更新
 
-- **Skill 合并到 Command**: task-plan、task-done、task-log、task-list 现在是独立 command，不再通过 Skill tool 转发。仅 task-do 保留 skill 形式（长循环任务需要 system-reminder 持久性）。每个 command 是单个文件，加载极快，无转发开销。
-- **双语 README**: 英文 + 中文，顶部有语言切换链接。
-
-## v2.2.0 更新
-
-- **Skill 精简**: Skill 文件从 943 行缩减到 456 行（-52%）。功能不变，上下文占用大幅减少。
-- **Plan 审查 Agent**: 每次 `/task:plan` 自动审查任务图。两层 —— 确定性检查（任务数量、依赖有效性、验证覆盖率、粒度）+ LLM 子代理（完整性、排序、风险）。输出 PASS / WARN / BLOCK。WARN 不阻塞执行；BLOCK 会阻塞。
-- **原生进度条**: `/task:do` 通过 TaskCreate/TaskUpdate 驱动 Claude Code 内置进度条。待办显示 ◻，进行中显示 ◼，完成显示 ✔ —— 全在底部状态栏。
-- **前置检查点 + 压缩恢复**: 检查点在每个任务执行前写入（而非之后）。如果上下文中途压缩，下次会话自动从被打断的任务恢复。
-- **安装包含运行时**: `workflow-runtime.ts`、`package.json`、`tsconfig.json` 现在安装到 `~/.claude/task-workflow/`。工作流可在任意目录使用，不限于仓库目录。
-- **语言护栏**: 每个 command/skill 自带语言规则。不依赖项目级 CLAUDE.md（不会被安装的文件）。
+- **产物追踪 (Artifact Tracking)**: SubTask 和 Checkpoint 新增 `artifacts` 字段 —— 记录每个任务产出的文件列表。Reviewer 和后续任务可直接定位产物，无需重读整个执行日志。通过 `step-done --artifacts=<f1>,<f2>` 和 `checkpoint --artifacts=<f1>,<f2>` 传参。
+- **结构化校验 (Validate)**: 新增 `validate` 命令，运行 4 项确定性检查（task_count、deps_valid、verify_coverage、granularity），输出结构化 JSON，标准 exit code（0=PASS / 1=WARN / 2=BLOCK）。可被脚本调用，也可被 plan review 复用。
+- **Skill 合并到 Command**: task-plan、task-done、task-log、task-list 是独立 command。仅 task-do 保留 skill 形式。
+- **Plan 审查 Agent**: 两层审查 —— 确定性（现通过 `validate` 命令）+ LLM 子代理。返回 PASS / WARN / BLOCK。
+- **原生进度条**: `/task:do` 通过 TaskCreate/TaskUpdate 驱动 Claude Code 内置进度条。
+- **前置检查点 + 压缩恢复**: 检查点在执行前写入。上下文压缩后自动恢复。
+- **双语 README + 安装含运行时**。
 
 ## 工作原理
 
