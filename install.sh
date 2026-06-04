@@ -41,13 +41,18 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Create directories
 mkdir -p "$TARGET/skills"
-mkdir -p "$TARGET/commands/rail"
+mkdir -p "$TARGET/commands"
 
 # Copy skills
 cp -r "$SCRIPT_DIR/skills/rail-do" "$TARGET/skills/"
 
-# Copy commands
-cp "$SCRIPT_DIR/commands/rail/"*.md "$TARGET/commands/rail/"
+# Copy commands (flat files, no colon)
+cp "$SCRIPT_DIR"/commands/rail*.md "$TARGET/commands/"
+
+# Clean up old colon-based commands from v3.0.0 installs
+if [ -d "$TARGET/commands/rail" ]; then
+    rm -rf "$TARGET/commands/rail"
+fi
 
 # Copy runtime
 mkdir -p "$TARGET/agentrail"

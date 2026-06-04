@@ -45,13 +45,18 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 # Create directories
 New-Item -ItemType Directory -Force -Path "$Target\skills" | Out-Null
-New-Item -ItemType Directory -Force -Path "$Target\commands\rail" | Out-Null
+New-Item -ItemType Directory -Force -Path "$Target\commands" | Out-Null
 
 # Copy skills
 Copy-Item -Recurse -Force "$ScriptDir\skills\rail-do" "$Target\skills\"
 
-# Copy commands
-Copy-Item -Force "$ScriptDir\commands\rail\*.md" "$Target\commands\rail\"
+# Copy commands (flat files, no colon)
+Copy-Item -Force "$ScriptDir\commands\rail*.md" "$Target\commands\"
+
+# Clean up old colon-based commands from v3.0.0 installs
+if (Test-Path "$Target\commands\rail") {
+    Remove-Item -Recurse -Force "$Target\commands\rail"
+}
 
 # Copy runtime
 New-Item -ItemType Directory -Force -Path "$Target\agentrail" | Out-Null

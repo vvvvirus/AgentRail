@@ -103,13 +103,13 @@ AgentRail/
 ├── install.sh / install.ps1            # Installers
 ├── README.md
 ├── LICENSE
-├── commands/rail/                      # 6 slash commands (standalone)
-│   ├── plan.md
-│   ├── do.md
-│   ├── done.md
-│   ├── list.md
-│   ├── log.md
-│   └── verify.md
+├── commands/                            # 6 slash commands (flat, no colon)
+│   ├── railplan.md
+│   ├── raildo.md
+│   ├── raildone.md
+│   ├── raillist.md
+│   ├── raillog.md
+│   └── railverify.md
 ├── skills/                             # 1 skill
 │   └── rail-do/SKILL.md                # Execute + native UI + recovery
 └── agentrail/                          # Runtime + tasks (installed to agent config dir)
@@ -170,7 +170,7 @@ Zero dependencies beyond Node 18+ built-in `node:test`. Covers DAG scheduling (o
 ```
 ~/.claude/               ← Claude Code (or ~/.codex, ~/.gemini, etc.)
 ├── skills/rail-do/      ← Skill (agent auto-discovers)
-├── commands/rail/       ← Commands (agent auto-discovers)
+├── commands/             ← Commands (agent auto-discovers, flat files)
 └── agentrail/           ← Runtime (one clean subdirectory)
     ├── cli.ts
     ├── src/              ← Modular runtime

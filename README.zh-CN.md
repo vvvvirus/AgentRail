@@ -103,13 +103,13 @@ AgentRail/
 ├── install.sh / install.ps1            # 安装脚本
 ├── README.md
 ├── LICENSE
-├── commands/rail/                      # 6 个斜杠命令（独立）
-│   ├── plan.md
-│   ├── do.md
-│   ├── done.md
-│   ├── list.md
-│   ├── log.md
-│   └── verify.md
+├── commands/                            # 6 个斜杠命令（扁平文件，无冒号）
+│   ├── railplan.md
+│   ├── raildo.md
+│   ├── raildone.md
+│   ├── raillist.md
+│   ├── raillog.md
+│   └── railverify.md
 ├── skills/                             # 1 个 skill
 │   └── rail-do/SKILL.md                # 执行 + 原生 UI + 恢复
 └── agentrail/                          # 运行时 + 任务（安装到 agent 配置目录）
@@ -170,7 +170,7 @@ npx tsx --test tests/task-graph.test.ts tests/validate.test.ts
 ```
 ~/.claude/               ← Claude Code（或 ~/.codex、~/.gemini 等）
 ├── skills/rail-do/      ← Skill（Agent 自动发现）
-├── commands/rail/       ← Commands（Agent 自动发现）
+├── commands/             ← Commands（Agent 自动发现，扁平文件）
 └── agentrail/           ← 运行时（一个干净的子目录）
     ├── cli.ts
     ├── src/              ← 模块化运行时
